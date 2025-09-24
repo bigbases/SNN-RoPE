@@ -6,11 +6,6 @@ This repository implements Rotary Positional Embedding (RoPE) for Spiking Neural
 
 ## Key Contributions
 
-### CPG-PE (Central Pattern Generator Positional Encoding)
-- Biologically-inspired positional encoding based on Central Pattern Generators
-- Binary pattern generation optimized for spiking characteristics
-- Efficient implementation using Heaviside functions
-
 ### RoPE for SNN
 - Multiple RoPE variants for temporal and spatial dimensions:
   - `RotaryEmbedding1DTemporal`: Temporal dimension rotary embedding
