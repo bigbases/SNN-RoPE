@@ -1,4 +1,4 @@
-# SNN-RoPE
+# Spiking Fused-PE (SF-PE)
 
 **Rotary Positional Embedding (RoPE) for Spiking Neural Networks**
 
