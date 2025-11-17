@@ -39,7 +39,7 @@ class SSARoPE(nn.Module):
 
         # RoPE 2D embedding
         if self.use_rope:
-            self.rotary_emb = RotaryEmbedding1DSpatial(
+            self.rotary_emb = RotaryEmbedding2D(
                 dim=self.head_dim, 
                 max_position_embeddings=length,
                 base=rope_theta
@@ -110,24 +110,12 @@ class SSARoPE(nn.Module):
             .reshape(T, B, L, D)
             .contiguous()
         )
-        q_m_out = self.q_lif(q_m_out)
-        q = (
-            q_m_out.reshape(T, B, L, self.heads, D // self.heads)
-            .permute(0, 1, 3, 2, 4)
-            .contiguous()
-        )
 
         k_m_out = self.k_m(x_for_qkv)
         k_m_out = (
             self.k_bn(k_m_out.transpose(-1, -2))
             .transpose(-1, -2)
             .reshape(T, B, L, D)
-            .contiguous()
-        )
-        k_m_out = self.k_lif(k_m_out)
-        k = (
-            k_m_out.reshape(T, B, L, self.heads, D // self.heads)
-            .permute(0, 1, 3, 2, 4)
             .contiguous()
         )
 
@@ -145,20 +133,32 @@ class SSARoPE(nn.Module):
             .contiguous()
         )
 
-        # RoPE 적용 (Q와 K에만)
         if self.use_rope:
             try:
                 # Get rotary embeddings: (T, 1, 1, L, head_dim//2)
                 cos, sin = self.rotary_emb(T, L, device=q.device)
                 
                 # Apply RoPE to Q and K
-                q = apply_spiking_rotary_pos_emb(q, cos, sin, threshold=0.5)
-                k = apply_spiking_rotary_pos_emb(k, cos, sin, threshold=0.5)
+                q_m_out = apply_spiking_rotary_pos_emb(q_m_out, cos, sin)
+                k_m_out = apply_spiking_rotary_pos_emb(k_m_out, cos, sin)
                 
             except Exception as e:
                 print(f"RoPE application failed: {e}, using original Q, K")
-
-        # T_lat 제거, SpikformerCPG와 동일한 방식으로 attention 계산
+        
+        q_m_out = self.q_lif(q_m_out)
+        q = (
+            q_m_out.reshape(T, B, L, self.heads, D // self.heads)
+            .permute(0, 1, 3, 2, 4)
+            .contiguous()
+        )
+        
+        k_m_out = self.k_lif(k_m_out)
+        k = (
+            k_m_out.reshape(T, B, L, self.heads, D // self.heads)
+            .permute(0, 1, 3, 2, 4)
+            .contiguous()
+        )
+        
         attn = (q @ k.transpose(-2, -1)) * self.qk_scale
         x = attn @ v  # x_shape: T * B * heads * L * D//heads
 

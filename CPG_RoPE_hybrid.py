@@ -116,9 +116,6 @@ def apply_spiking_rotary_pos_emb(x, cos, sin, threshold=0.5):
     result[..., 0::2] = rotated_even
     result[..., 1::2] = rotated_odd
     
-    # result = phase_to_latency(result, 7, 0.2)
-    # return result.permute(-1,0,1,2,3,4)
-    result = spike_function(result, threshold)
     return result
 
 def spike_function(x, threshold=0.5):

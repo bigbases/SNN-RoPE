@@ -53,23 +53,3 @@ class CPGLinear(nn.Module):
         x = self.dropout(x)
         return self.inp_linear(x) + self.cpg_linear(cpg)
     
-class CPGLinear2(nn.Module):
-    def __init__(
-        self, input_size: int, output_size: int, cpg: CPG = CPG(), dropout: float = 0.1
-    ):
-        super().__init__()
-        self.cpg = nn.Parameter(cpg.cpg, requires_grad=False)
-        self.inp_linear = nn.Linear(input_size, output_size)
-        self.cpg_linear = nn.Linear(cpg.num_neurons, output_size)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x: torch.Tensor):
-        # B TL D
-        cpg = self.cpg[: x.size(-2)]
-        x = self.dropout(x)
-
-        # cpg_linear 출력을 배치 차원으로 확장
-        cpg_output = self.cpg_linear(cpg)  # (TL, output_size)
-        cpg_output = cpg_output.unsqueeze(0).expand(x.size(0), -1, -1)  # (B, TL, output_size)
-        
-        return torch.cat([self.inp_linear(x), cpg_output], dim=2)
