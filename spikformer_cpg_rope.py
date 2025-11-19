@@ -110,7 +110,12 @@ class SSARoPE(nn.Module):
             .reshape(T, B, L, D)
             .contiguous()
         )
-
+        q_for_rope = (
+            q_m_out.reshape(T, B, L, self.heads, D // self.heads)
+            .permute(0, 1, 3, 2, 4)
+            .contiguous()
+        ) # T B H L D_h
+        
         k_m_out = self.k_m(x_for_qkv)
         k_m_out = (
             self.k_bn(k_m_out.transpose(-1, -2))
@@ -118,6 +123,11 @@ class SSARoPE(nn.Module):
             .reshape(T, B, L, D)
             .contiguous()
         )
+        k_for_rope = (
+            k_m_out.reshape(T, B, L, self.heads, D // self.heads)
+            .permute(0, 1, 3, 2, 4)
+            .contiguous()
+        ) # T B H L D_h
 
         v_m_out = self.v_m(x_for_qkv)
         v_m_out = (
@@ -139,20 +149,24 @@ class SSARoPE(nn.Module):
                 cos, sin = self.rotary_emb(T, L, device=q.device)
                 
                 # Apply RoPE to Q and K
-                q_m_out = apply_spiking_rotary_pos_emb(q_m_out, cos, sin)
-                k_m_out = apply_spiking_rotary_pos_emb(k_m_out, cos, sin)
+                q_rotated = apply_spiking_rotary_pos_emb(q_for_rope, cos, sin)
+                k_rotated = apply_spiking_rotary_pos_emb(k_for_rope, cos, sin)
                 
             except Exception as e:
                 print(f"RoPE application failed: {e}, using original Q, K")
+                q_rotated = q_for_rope
+                k_rotated = k_for_rope
         
-        q_m_out = self.q_lif(q_m_out)
+        q_pre_lif = q_rotated.permute(0, 1, 3, 2, 4).reshape(T, B, L, D).contiguous()
+        q_m_out = self.q_lif(q_pre_lif)
         q = (
             q_m_out.reshape(T, B, L, self.heads, D // self.heads)
             .permute(0, 1, 3, 2, 4)
             .contiguous()
         )
         
-        k_m_out = self.k_lif(k_m_out)
+        k_pre_lif = k_rotated.permute(0, 1, 3, 2, 4).reshape(T, B, L, D).contiguous()
+        k_m_out = self.k_lif(k_pre_lif)
         k = (
             k_m_out.reshape(T, B, L, self.heads, D // self.heads)
             .permute(0, 1, 3, 2, 4)
