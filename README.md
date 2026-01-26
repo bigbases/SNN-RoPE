@@ -28,6 +28,8 @@ SNN-RoPE/
 
 This repository's models can be trained using the **SeqSNN framework**:
 
+### Setup SeqSNN Environment
+
 ```bash
 # Install SeqSNN
 conda create -n SeqSNN python=3.9
@@ -35,9 +37,41 @@ conda activate SeqSNN
 git clone https://github.com/microsoft/SeqSNN/
 cd SeqSNN
 pip install -e .
+```
 
-# Train CPG-RoPE models
-python -m SeqSNN.entry.tsforecast exp/forecast/cpg_rope/config.yml
+### Using Configuration Files
+
+This repository provides pre-configured YAML files for training different models. Copy the configuration files from the `exp/` directory to the SeqSNN repository:
+
+```bash
+# Copy configuration files to SeqSNN repository
+cp /path/to/SNN-RoPE/exp/*.yml /path/to/SeqSNN/exp/forecast/spikformer_rope/
+
+# Example: Train Spikformer with RoPE on electricity dataset
+python -m SeqSNN.entry.tsforecast exp/forecast/spikformer_rope/spikformer_rope_electricity.yml
+```
+
+### Configuration File Structure
+
+The YAML configuration files include:
+- **Dataset settings**: Window size, horizon, normalization
+- **Model parameters**: Dimensions, depths, attention heads
+- **RoPE settings**: `use_rope: True`, `rope_theta`, `rope_mode`
+- **Training settings**: Learning rate, batch size, epochs
+
+Example configuration for electricity forecasting:
+```yaml
+network:
+  type: SpikformerCPGRoPE
+  dim: 256
+  d_ff: 1024
+  depths: 2
+  num_steps: 4
+  heads: 8
+  # RoPE specific parameters
+  use_rope: True
+  rope_theta: 10000.0
+  rope_mode: 2d
 ```
 
 ## Related Papers
