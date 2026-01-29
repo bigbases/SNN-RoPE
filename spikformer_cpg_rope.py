@@ -4,14 +4,15 @@ import torch
 from torch import nn
 from spikingjelly.activation_based import surrogate, neuron, functional
 
-from .module.spike_encoding import SpikeEncoder
-from CPG import CPGLinear, CPG
-from CPG_RoPE_hybrid import (
+from ...module.spike_encoding import SpikeEncoder
+from ...module.CPG import CPGLinear, CPG
+from ...module.CPG_RoPE_hybrid import (
     RotaryEmbedding2D,
     RotaryEmbedding1DSpatial,
     RotaryEmbedding1DTemporal,
     apply_spiking_rotary_pos_emb,
 )
+from ..base import NETWORKS
 
 tau = 2.0
 backend = "torch"
@@ -174,6 +175,7 @@ class BlockRoPE(nn.Module):
         x = x + self.mlp(x)
         return x
 
+@NETWORKS.register_module("SpikformerCPGRoPE")
 class SpikformerCPGRoPE(nn.Module):
     _snn_backend = "spikingjelly"
 
@@ -229,3 +231,12 @@ class SpikformerCPGRoPE(nn.Module):
             x = blk(x)
         out = x.mean(0)
         return out, out.mean(dim=1)
+
+        
+    @property
+    def output_size(self):
+        return self.dim
+
+    @property
+    def hidden_size(self):
+        return self.dim   
